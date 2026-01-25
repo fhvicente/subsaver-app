@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -13,6 +13,8 @@ import { subscriptionAPI } from '../../src/services/api';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../src/store/authStore';
+import { useLocalSubscriptionStore } from '../../src/store/localSubscriptionStore';
 
 type SortType = 'date' | 'price-asc' | 'price-desc' | 'name';
 
@@ -20,6 +22,14 @@ export default function SubscriptionsScreen() {
   const router = useRouter();
   const [sortBy, setSortBy] = useState<SortType>('date');
   const [menuVisible, setMenuVisible] = useState(false);
+  const { isGuest } = useAuthStore();
+  const { subscriptions: localSubs, loadSubscriptions } = useLocalSubscriptionStore();
+
+  useEffect(() => {
+    if (isGuest) {
+      loadSubscriptions();
+    }
+  }, [isGuest]);
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['subscriptions'],
@@ -27,7 +37,27 @@ export default function SubscriptionsScreen() {
       const response = await subscriptionAPI.getAll();
       return response.data;
     },
+    enabled: !isGuest,
   });
+
+  const localSubsWithMetrics = useMemo(() => {
+    if (!isGuest || !localSubs) return [];
+    
+    const today = new Date();
+    return localSubs.map((sub) => {
+      const renewalDate = new Date(sub.renewal_date);
+      const daysUntil = Math.floor((renewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      return {
+        ...sub,
+        monthly_cost: sub.price,
+        annual_cost: sub.price * 12,
+        days_until_renewal: daysUntil,
+      };
+    });
+  }, [localSubs, isGuest]);
+
+  const subscriptions = isGuest ? localSubsWithMetrics : (data || []);
 
   const sortSubscriptions = (subs: any[]) => {
     if (!subs) return [];
@@ -52,7 +82,7 @@ export default function SubscriptionsScreen() {
     }
   };
 
-  const sortedSubscriptions = sortSubscriptions(data || []);
+  const sortedSubscriptions = sortSubscriptions(subscriptions);
 
   const getSortLabel = () => {
     switch (sortBy) {
@@ -67,7 +97,15 @@ export default function SubscriptionsScreen() {
     }
   };
 
-  if (isLoading) {
+  const handleRefresh = () => {
+    if (isGuest) {
+      loadSubscriptions();
+    } else {
+      refetch();
+    }
+  };
+
+  if (isLoading && !isGuest) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6200ee" />
@@ -135,7 +173,7 @@ export default function SubscriptionsScreen() {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl refreshing={isRefetching && !isGuest} onRefresh={handleRefresh} />
         }
       >
         {sortedSubscriptions.length === 0 ? (

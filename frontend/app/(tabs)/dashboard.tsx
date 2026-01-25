@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Card, ActivityIndicator, FAB } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -7,18 +7,65 @@ import { subscriptionAPI } from '../../src/services/api';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../src/store/authStore';
+import { useLocalSubscriptionStore } from '../../src/store/localSubscriptionStore';
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { isGuest } = useAuthStore();
+  const { subscriptions: localSubs, loadSubscriptions } = useLocalSubscriptionStore();
+
+  useEffect(() => {
+    if (isGuest) {
+      loadSubscriptions();
+    }
+  }, [isGuest]);
+
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['analytics'],
     queryFn: async () => {
       const response = await subscriptionAPI.getAnalytics();
       return response.data;
     },
+    enabled: !isGuest,
   });
 
-  if (isLoading) {
+  const localAnalytics = useMemo(() => {
+    if (!isGuest || !localSubs) return null;
+
+    const today = new Date();
+    let monthlySpend = 0;
+    let nextRenewal = null;
+    let minDays = Infinity;
+    const categoryBreakdown: Record<string, number> = {};
+
+    localSubs.forEach((sub) => {
+      const renewalDate = new Date(sub.renewal_date);
+      const daysUntil = Math.floor((renewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      monthlySpend += sub.price;
+      
+      const category = sub.category || 'Uncategorized';
+      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + sub.price;
+      
+      if (daysUntil >= 0 && daysUntil < minDays) {
+        minDays = daysUntil;
+        nextRenewal = { ...sub, days_until_renewal: daysUntil };
+      }
+    });
+
+    return {
+      total_subscriptions: localSubs.length,
+      monthly_spend: monthlySpend,
+      annual_spend: monthlySpend * 12,
+      next_renewal: nextRenewal,
+      category_breakdown: categoryBreakdown,
+    };
+  }, [localSubs, isGuest]);
+
+  const analytics = isGuest ? localAnalytics : data;
+
+  if (isLoading && !isGuest) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6200ee" />
@@ -26,7 +73,7 @@ export default function DashboardScreen() {
     );
   }
 
-  const analytics = data || {
+  const analyticsData = analytics || {
     total_subscriptions: 0,
     monthly_spend: 0,
     annual_spend: 0,
@@ -34,12 +81,20 @@ export default function DashboardScreen() {
     category_breakdown: {},
   };
 
+  const handleRefresh = () => {
+    if (isGuest) {
+      loadSubscriptions();
+    } else {
+      refetch();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+          <RefreshControl refreshing={isRefetching && !isGuest} onRefresh={handleRefresh} />
         }
       >
         <View style={styles.header}>
@@ -47,7 +102,7 @@ export default function DashboardScreen() {
             Dashboard
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
-            Your subscription overview
+            {isGuest ? 'Local Storage Mode' : 'Your subscription overview'}
           </Text>
         </View>
 
@@ -58,7 +113,7 @@ export default function DashboardScreen() {
                 <Ionicons name="wallet" size={24} color="#6200ee" />
               </View>
               <Text variant="headlineLarge" style={styles.metricValue}>
-                ${analytics.monthly_spend.toFixed(2)}
+                ${analyticsData.monthly_spend.toFixed(2)}
               </Text>
               <Text variant="bodyMedium" style={styles.metricLabel}>
                 Monthly Spend
@@ -72,7 +127,7 @@ export default function DashboardScreen() {
                 <Ionicons name="calendar" size={24} color="#6200ee" />
               </View>
               <Text variant="headlineLarge" style={styles.metricValue}>
-                ${analytics.annual_spend.toFixed(2)}
+                ${analyticsData.annual_spend.toFixed(2)}
               </Text>
               <Text variant="bodyMedium" style={styles.metricLabel}>
                 Annual Projected
@@ -89,13 +144,13 @@ export default function DashboardScreen() {
             <View style={styles.summaryRow}>
               <Text variant="bodyLarge">Active Subscriptions</Text>
               <Text variant="bodyLarge" style={styles.summaryValue}>
-                {analytics.total_subscriptions}
+                {analyticsData.total_subscriptions}
               </Text>
             </View>
           </Card.Content>
         </Card>
 
-        {analytics.next_renewal && (
+        {analyticsData.next_renewal && (
           <Card style={styles.renewalCard}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.cardTitle}>
@@ -104,18 +159,18 @@ export default function DashboardScreen() {
               <View style={styles.renewalContent}>
                 <View style={styles.renewalInfo}>
                   <Text variant="bodyLarge" style={styles.serviceName}>
-                    {analytics.next_renewal.service_name}
+                    {analyticsData.next_renewal.service_name}
                   </Text>
                   <Text variant="bodyMedium" style={styles.renewalDate}>
-                    {format(new Date(analytics.next_renewal.renewal_date), 'MMM dd, yyyy')}
+                    {format(new Date(analyticsData.next_renewal.renewal_date), 'MMM dd, yyyy')}
                   </Text>
                 </View>
                 <View style={styles.renewalPrice}>
                   <Text variant="headlineSmall" style={styles.price}>
-                    ${analytics.next_renewal.price.toFixed(2)}
+                    ${analyticsData.next_renewal.price.toFixed(2)}
                   </Text>
                   <Text variant="bodySmall" style={styles.daysUntil}>
-                    in {analytics.next_renewal.days_until_renewal} days
+                    in {analyticsData.next_renewal.days_until_renewal} days
                   </Text>
                 </View>
               </View>
@@ -123,13 +178,13 @@ export default function DashboardScreen() {
           </Card>
         )}
 
-        {Object.keys(analytics.category_breakdown).length > 0 && (
+        {Object.keys(analyticsData.category_breakdown).length > 0 && (
           <Card style={styles.categoryCard}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.cardTitle}>
                 Spending by Category
               </Text>
-              {Object.entries(analytics.category_breakdown).map(([category, amount]: [string, any]) => (
+              {Object.entries(analyticsData.category_breakdown).map(([category, amount]: [string, any]) => (
                 <View key={category} style={styles.categoryRow}>
                   <Text variant="bodyLarge">{category}</Text>
                   <Text variant="bodyLarge" style={styles.categoryAmount}>
@@ -141,7 +196,7 @@ export default function DashboardScreen() {
           </Card>
         )}
 
-        {analytics.total_subscriptions === 0 && (
+        {analyticsData.total_subscriptions === 0 && (
           <Card style={styles.emptyCard}>
             <Card.Content>
               <View style={styles.emptyContent}>
