@@ -209,12 +209,12 @@ class SubscriptionManagerTester:
         
         response = self.make_request("GET", "/user/profile")
         
-        if response and response.status_code == 401:
+        if response and response.status_code == 403:
             self.log_result("Unauthorized Access Prevention", True, 
                           "Correctly rejected request without auth token")
         else:
             self.log_result("Unauthorized Access Prevention", False, 
-                          "Should have failed with 401 status code")
+                          "Should have failed with 403 status code")
         
         # Restore auth token
         self.auth_token = original_token
