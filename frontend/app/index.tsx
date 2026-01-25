@@ -5,17 +5,17 @@ import { useAuthStore } from '../src/store/authStore';
 
 export default function Index() {
   const router = useRouter();
-  const { token, isLoading } = useAuthStore();
+  const { token, isLoading, isGuest } = useAuthStore();
 
   useEffect(() => {
     if (!isLoading) {
-      if (token) {
+      if (token || isGuest) {
         router.replace('/(tabs)/dashboard');
       } else {
-        router.replace('/auth/login');
+        router.replace('/welcome');
       }
     }
-  }, [token, isLoading]);
+  }, [token, isLoading, isGuest]);
 
   return (
     <View style={styles.container}>

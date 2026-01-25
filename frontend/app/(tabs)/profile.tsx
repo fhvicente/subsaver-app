@@ -1,28 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Card, Button, Menu, Divider } from 'react-native-paper';
+import { Text, Card, Button, Menu } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../src/store/authStore';
 import { useRouter } from 'expo-router';
 import { userAPI } from '../../src/services/api';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'INR'];
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, clearAuth, updateUser } = useAuthStore();
+  const { user, clearAuth, updateUser, isGuest } = useAuthStore();
   const [currencyMenuVisible, setCurrencyMenuVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [localCurrency, setLocalCurrency] = useState('USD');
+
+  useEffect(() => {
+    loadLocalSettings();
+  }, []);
+
+  const loadLocalSettings = async () => {
+    const currency = await AsyncStorage.getItem('local_currency');
+    if (currency) {
+      setLocalCurrency(currency);
+    }
+  };
 
   const handleCurrencyChange = async (currency: string) => {
     setCurrencyMenuVisible(false);
     setLoading(true);
 
     try {
-      await userAPI.updateProfile({ currency });
-      if (user) {
-        updateUser({ ...user, currency });
+      if (isGuest) {
+        await AsyncStorage.setItem('local_currency', currency);
+        setLocalCurrency(currency);
+      } else {
+        await userAPI.updateProfile({ currency });
+        if (user) {
+          updateUser({ ...user, currency });
+        }
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to update currency');
@@ -32,17 +50,25 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
+    const message = isGuest 
+      ? 'Exit guest mode? Your local data will remain on this device.'
+      : 'Are you sure you want to logout?';
+    
+    Alert.alert('Logout', message, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Logout',
+        text: isGuest ? 'Exit' : 'Logout',
         style: 'destructive',
         onPress: async () => {
           await clearAuth();
-          router.replace('/auth/login');
+          router.replace('/welcome');
         },
       },
     ]);
+  };
+
+  const handleSignUp = () => {
+    router.push('/auth/register');
   };
 
   return (
@@ -53,23 +79,49 @@ export default function ProfileScreen() {
             Profile
           </Text>
           <Text variant="bodyMedium" style={styles.subtitle}>
-            Manage your account settings
+            {isGuest ? 'Guest Mode' : 'Manage your account settings'}
           </Text>
         </View>
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>
-              Account Information
-            </Text>
-            <View style={styles.infoRow}>
-              <Ionicons name="mail-outline" size={20} color="#666" />
-              <Text variant="bodyLarge" style={styles.infoText}>
-                {user?.email}
+        {isGuest ? (
+          <Card style={styles.guestCard}>
+            <Card.Content>
+              <View style={styles.guestBanner}>
+                <Ionicons name="information-circle" size={32} color="#6200ee" />
+                <View style={styles.guestTextContainer}>
+                  <Text variant="titleMedium" style={styles.guestTitle}>
+                    You're using Guest Mode
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.guestText}>
+                    Create an account to sync your data across devices and never lose your subscriptions.
+                  </Text>
+                </View>
+              </View>
+              <Button
+                mode="contained"
+                onPress={handleSignUp}
+                style={styles.signUpButton}
+                icon="account-plus"
+              >
+                Create Account
+              </Button>
+            </Card.Content>
+          </Card>
+        ) : (
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Account Information
               </Text>
-            </View>
-          </Card.Content>
-        </Card>
+              <View style={styles.infoRow}>
+                <Ionicons name="mail-outline" size={20} color="#666" />
+                <Text variant="bodyLarge" style={styles.infoText}>
+                  {user?.email}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
 
         <Card style={styles.card}>
           <Card.Content>
@@ -94,7 +146,7 @@ export default function ProfileScreen() {
                     disabled={loading}
                     compact
                   >
-                    {user?.currency || 'USD'}
+                    {isGuest ? localCurrency : (user?.currency || 'USD')}
                   </Button>
                 }
               >
@@ -134,7 +186,7 @@ export default function ProfileScreen() {
           buttonColor="#d32f2f"
           icon="logout"
         >
-          Logout
+          {isGuest ? 'Exit Guest Mode' : 'Logout'}
         </Button>
       </ScrollView>
     </SafeAreaView>
@@ -161,6 +213,28 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 16,
+  },
+  guestCard: {
+    marginBottom: 16,
+    backgroundColor: '#f3e5f5',
+  },
+  guestBanner: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  guestTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  guestTitle: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  guestText: {
+    color: '#666',
+  },
+  signUpButton: {
+    paddingVertical: 4,
   },
   sectionTitle: {
     fontWeight: 'bold',
