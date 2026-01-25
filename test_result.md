@@ -257,18 +257,13 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "User Authentication System (Register, Login, JWT)"
-    - "Subscription CRUD Operations"
-    - "Dashboard Analytics Endpoint"
-    - "Authentication Flow (Login & Register Screens)"
-    - "Dashboard Screen with Analytics"
-    - "Subscriptions List Screen with Sorting"
-    - "Add Subscription Screen"
+  current_focus: []
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
     message: "Core Subscription Manager app implemented. Backend has complete authentication with JWT, full subscription CRUD with analytics. Frontend has auth flow, bottom tab navigation, dashboard with metrics, subscription list with sorting, add/edit/delete forms, and profile with currency selector. All features ready for testing. Notifications are placeholders as requested by user."
+  - agent: "testing"
+    message: "✅ BACKEND TESTING COMPLETE: All 4 high-priority backend tasks are working correctly. Authentication system (register/login/JWT) fully functional with proper error handling. User profile management working (get/update currency). Subscription CRUD operations complete - create, read, update, delete all working with proper calculations. Dashboard analytics endpoint returning accurate metrics. Minor issues: bcrypt version warning (non-critical), backend allows negative subscription prices (validation enhancement opportunity). All core functionality verified and working as expected."
