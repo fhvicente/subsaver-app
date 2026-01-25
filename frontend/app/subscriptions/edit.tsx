@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Text,
@@ -20,18 +21,28 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { subscriptionAPI } from '../../src/services/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../src/store/authStore';
+import { useLocalSubscriptionStore } from '../../src/store/localSubscriptionStore';
 
 export default function EditSubscriptionScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const queryClient = useQueryClient();
+  const { isGuest } = useAuthStore();
+  const { subscriptions: localSubs, updateSubscription: updateLocalSubscription, deleteSubscription: deleteLocalSubscription } = useLocalSubscriptionStore();
+  
   const [serviceName, setServiceName] = useState('');
   const [price, setPrice] = useState('');
-  const [renewalDate, setRenewalDate] = useState('');
-  const [startDate, setStartDate] = useState('');
+  const [renewalDate, setRenewalDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(null);
   const [category, setCategory] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<any>({});
+  const [isRenewalDatePickerVisible, setRenewalDatePickerVisibility] = useState(false);
+  const [isStartDatePickerVisible, setStartDatePickerVisibility] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const { data: subscription, isLoading } = useQuery({
     queryKey: ['subscription', id],
@@ -39,19 +50,22 @@ export default function EditSubscriptionScreen() {
       const response = await subscriptionAPI.getById(id as string);
       return response.data;
     },
-    enabled: !!id,
+    enabled: !!id && !isGuest,
   });
 
+  const localSubscription = isGuest ? localSubs?.find(s => s.id === id) : null;
+
   useEffect(() => {
-    if (subscription) {
-      setServiceName(subscription.service_name);
-      setPrice(subscription.price.toString());
-      setRenewalDate(subscription.renewal_date.split('T')[0]);
-      setStartDate(subscription.start_date ? subscription.start_date.split('T')[0] : '');
-      setCategory(subscription.category || '');
-      setNotes(subscription.notes || '');
+    const sub = isGuest ? localSubscription : subscription;
+    if (sub) {
+      setServiceName(sub.service_name);
+      setPrice(sub.price.toString());
+      setRenewalDate(new Date(sub.renewal_date));
+      setStartDate(sub.start_date ? new Date(sub.start_date) : null);
+      setCategory(sub.category || '');
+      setNotes(sub.notes || '');
     }
-  }, [subscription]);
+  }, [subscription, localSubscription, isGuest]);
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => subscriptionAPI.update(id as string, data),
@@ -88,44 +102,48 @@ export default function EditSubscriptionScreen() {
 
     if (!renewalDate) {
       newErrors.renewalDate = 'Renewal date is required';
-    } else {
-      const date = new Date(renewalDate);
-      if (isNaN(date.getTime())) {
-        newErrors.renewalDate = 'Invalid date format (use YYYY-MM-DD)';
-      }
-    }
-
-    if (startDate) {
-      const date = new Date(startDate);
-      if (isNaN(date.getTime())) {
-        newErrors.startDate = 'Invalid date format (use YYYY-MM-DD)';
-      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (!validateForm()) return;
+  const handleSubmit = async () => {
+    if (!validateForm() || !renewalDate) return;
 
     const data: any = {
       service_name: serviceName.trim(),
       price: parseFloat(price),
-      renewal_date: new Date(renewalDate).toISOString(),
+      renewal_date: renewalDate.toISOString(),
     };
 
     if (startDate) {
-      data.start_date = new Date(startDate).toISOString();
+      data.start_date = startDate.toISOString();
     }
     if (category.trim()) {
       data.category = category.trim();
+    } else {
+      data.category = null;
     }
     if (notes.trim()) {
       data.notes = notes.trim();
+    } else {
+      data.notes = null;
     }
 
-    updateMutation.mutate(data);
+    if (isGuest) {
+      setSubmitting(true);
+      try {
+        await updateLocalSubscription(id as string, data);
+        router.back();
+      } catch (error) {
+        setErrors({ submit: 'Failed to update subscription' });
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      updateMutation.mutate(data);
+    }
   };
 
   const handleDelete = () => {
@@ -137,19 +155,54 @@ export default function EditSubscriptionScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteMutation.mutate(),
+          onPress: async () => {
+            if (isGuest) {
+              await deleteLocalSubscription(id as string);
+              router.back();
+            } else {
+              deleteMutation.mutate();
+            }
+          },
         },
       ]
     );
   };
 
-  if (isLoading) {
+  const showRenewalDatePicker = () => {
+    setRenewalDatePickerVisibility(true);
+  };
+
+  const hideRenewalDatePicker = () => {
+    setRenewalDatePickerVisibility(false);
+  };
+
+  const handleRenewalDateConfirm = (date: Date) => {
+    setRenewalDate(date);
+    hideRenewalDatePicker();
+  };
+
+  const showStartDatePicker = () => {
+    setStartDatePickerVisibility(true);
+  };
+
+  const hideStartDatePicker = () => {
+    setStartDatePickerVisibility(false);
+  };
+
+  const handleStartDateConfirm = (date: Date) => {
+    setStartDate(date);
+    hideStartDatePicker();
+  };
+
+  if (isLoading && !isGuest) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6200ee" />
       </View>
     );
   }
+
+  const loading = updateMutation.isPending || submitting;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -192,30 +245,48 @@ export default function EditSubscriptionScreen() {
             />
             {errors.price && <HelperText type="error">{errors.price}</HelperText>}
 
-            <TextInput
-              label="Renewal Date (YYYY-MM-DD) *"
-              value={renewalDate}
-              onChangeText={setRenewalDate}
-              mode="outlined"
-              placeholder="2025-12-31"
-              style={styles.input}
-              error={!!errors.renewalDate}
-            />
+            <TouchableOpacity onPress={showRenewalDatePicker}>
+              <View pointerEvents="none">
+                <TextInput
+                  label="Renewal Date *"
+                  value={renewalDate ? format(renewalDate, 'MMM dd, yyyy') : ''}
+                  mode="outlined"
+                  style={styles.input}
+                  error={!!errors.renewalDate}
+                  right={
+                    <TextInput.Icon icon={() => <Ionicons name="calendar" size={24} color="#666" />} />
+                  }
+                  editable={false}
+                />
+              </View>
+            </TouchableOpacity>
             {errors.renewalDate && (
               <HelperText type="error">{errors.renewalDate}</HelperText>
             )}
 
-            <TextInput
-              label="Start Date (YYYY-MM-DD)"
-              value={startDate}
-              onChangeText={setStartDate}
-              mode="outlined"
-              placeholder="2025-01-01"
-              style={styles.input}
-              error={!!errors.startDate}
-            />
-            {errors.startDate && (
-              <HelperText type="error">{errors.startDate}</HelperText>
+            <TouchableOpacity onPress={showStartDatePicker}>
+              <View pointerEvents="none">
+                <TextInput
+                  label="Start Date (Optional)"
+                  value={startDate ? format(startDate, 'MMM dd, yyyy') : ''}
+                  mode="outlined"
+                  style={styles.input}
+                  right={
+                    <TextInput.Icon icon={() => <Ionicons name="calendar" size={24} color="#666" />} />
+                  }
+                  editable={false}
+                />
+              </View>
+            </TouchableOpacity>
+            {startDate && (
+              <Button
+                mode="text"
+                onPress={() => setStartDate(null)}
+                compact
+                style={styles.clearButton}
+              >
+                Clear Start Date
+              </Button>
             )}
 
             <TextInput
@@ -252,8 +323,8 @@ export default function EditSubscriptionScreen() {
               <Button
                 mode="contained"
                 onPress={handleSubmit}
-                loading={updateMutation.isPending}
-                disabled={updateMutation.isPending}
+                loading={loading}
+                disabled={loading}
                 style={styles.submitButton}
               >
                 Save Changes
@@ -262,6 +333,24 @@ export default function EditSubscriptionScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <DateTimePickerModal
+        isVisible={isRenewalDatePickerVisible}
+        mode="date"
+        date={renewalDate || new Date()}
+        onConfirm={handleRenewalDateConfirm}
+        onCancel={hideRenewalDatePicker}
+        minimumDate={new Date()}
+      />
+
+      <DateTimePickerModal
+        isVisible={isStartDatePickerVisible}
+        mode="date"
+        date={startDate || new Date()}
+        onConfirm={handleStartDateConfirm}
+        onCancel={hideStartDatePicker}
+        maximumDate={new Date()}
+      />
     </SafeAreaView>
   );
 }
@@ -291,6 +380,10 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 8,
+  },
+  clearButton: {
+    marginBottom: 8,
+    alignSelf: 'flex-start',
   },
   buttonContainer: {
     flexDirection: 'row',

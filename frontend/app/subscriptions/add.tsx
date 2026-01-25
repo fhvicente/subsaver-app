@@ -5,6 +5,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Text,
@@ -18,17 +19,27 @@ import { useRouter } from 'expo-router';
 import { subscriptionAPI } from '../../src/services/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../src/store/authStore';
+import { useLocalSubscriptionStore } from '../../src/store/localSubscriptionStore';
 
 export default function AddSubscriptionScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { isGuest } = useAuthStore();
+  const { addSubscription: addLocalSubscription } = useLocalSubscriptionStore();
+  
   const [serviceName, setServiceName] = useState('');
   const [price, setPrice] = useState('');
-  const [renewalDate, setRenewalDate] = useState('');
-  const [startDate, setStartDate] = useState('');
+  const [renewalDate, setRenewalDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(null);
   const [category, setCategory] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState<any>({});
+  const [isRenewalDatePickerVisible, setRenewalDatePickerVisibility] = useState(false);
+  const [isStartDatePickerVisible, setStartDatePickerVisibility] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (data: any) => subscriptionAPI.create(data),
@@ -55,35 +66,23 @@ export default function AddSubscriptionScreen() {
 
     if (!renewalDate) {
       newErrors.renewalDate = 'Renewal date is required';
-    } else {
-      const date = new Date(renewalDate);
-      if (isNaN(date.getTime())) {
-        newErrors.renewalDate = 'Invalid date format (use YYYY-MM-DD)';
-      }
-    }
-
-    if (startDate) {
-      const date = new Date(startDate);
-      if (isNaN(date.getTime())) {
-        newErrors.startDate = 'Invalid date format (use YYYY-MM-DD)';
-      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
-    if (!validateForm()) return;
+  const handleSubmit = async () => {
+    if (!validateForm() || !renewalDate) return;
 
     const data: any = {
       service_name: serviceName.trim(),
       price: parseFloat(price),
-      renewal_date: new Date(renewalDate).toISOString(),
+      renewal_date: renewalDate.toISOString(),
     };
 
     if (startDate) {
-      data.start_date = new Date(startDate).toISOString();
+      data.start_date = startDate.toISOString();
     }
     if (category.trim()) {
       data.category = category.trim();
@@ -92,8 +91,48 @@ export default function AddSubscriptionScreen() {
       data.notes = notes.trim();
     }
 
-    mutation.mutate(data);
+    if (isGuest) {
+      setSubmitting(true);
+      try {
+        await addLocalSubscription(data);
+        router.back();
+      } catch (error) {
+        setErrors({ submit: 'Failed to add subscription' });
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      mutation.mutate(data);
+    }
   };
+
+  const showRenewalDatePicker = () => {
+    setRenewalDatePickerVisibility(true);
+  };
+
+  const hideRenewalDatePicker = () => {
+    setRenewalDatePickerVisibility(false);
+  };
+
+  const handleRenewalDateConfirm = (date: Date) => {
+    setRenewalDate(date);
+    hideRenewalDatePicker();
+  };
+
+  const showStartDatePicker = () => {
+    setStartDatePickerVisibility(true);
+  };
+
+  const hideStartDatePicker = () => {
+    setStartDatePickerVisibility(false);
+  };
+
+  const handleStartDateConfirm = (date: Date) => {
+    setStartDate(date);
+    hideStartDatePicker();
+  };
+
+  const loading = mutation.isPending || submitting;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -135,31 +174,39 @@ export default function AddSubscriptionScreen() {
             />
             {errors.price && <HelperText type="error">{errors.price}</HelperText>}
 
-            <TextInput
-              label="Renewal Date (YYYY-MM-DD) *"
-              value={renewalDate}
-              onChangeText={setRenewalDate}
-              mode="outlined"
-              placeholder="2025-12-31"
-              style={styles.input}
-              error={!!errors.renewalDate}
-            />
+            <TouchableOpacity onPress={showRenewalDatePicker}>
+              <View pointerEvents="none">
+                <TextInput
+                  label="Renewal Date *"
+                  value={renewalDate ? format(renewalDate, 'MMM dd, yyyy') : ''}
+                  mode="outlined"
+                  style={styles.input}
+                  error={!!errors.renewalDate}
+                  right={
+                    <TextInput.Icon icon={() => <Ionicons name="calendar" size={24} color="#666" />} />
+                  }
+                  editable={false}
+                />
+              </View>
+            </TouchableOpacity>
             {errors.renewalDate && (
               <HelperText type="error">{errors.renewalDate}</HelperText>
             )}
 
-            <TextInput
-              label="Start Date (YYYY-MM-DD)"
-              value={startDate}
-              onChangeText={setStartDate}
-              mode="outlined"
-              placeholder="2025-01-01"
-              style={styles.input}
-              error={!!errors.startDate}
-            />
-            {errors.startDate && (
-              <HelperText type="error">{errors.startDate}</HelperText>
-            )}
+            <TouchableOpacity onPress={showStartDatePicker}>
+              <View pointerEvents="none">
+                <TextInput
+                  label="Start Date (Optional)"
+                  value={startDate ? format(startDate, 'MMM dd, yyyy') : ''}
+                  mode="outlined"
+                  style={styles.input}
+                  right={
+                    <TextInput.Icon icon={() => <Ionicons name="calendar" size={24} color="#666" />} />
+                  }
+                  editable={false}
+                />
+              </View>
+            </TouchableOpacity>
 
             <TextInput
               label="Category"
@@ -195,8 +242,8 @@ export default function AddSubscriptionScreen() {
               <Button
                 mode="contained"
                 onPress={handleSubmit}
-                loading={mutation.isPending}
-                disabled={mutation.isPending}
+                loading={loading}
+                disabled={loading}
                 style={styles.submitButton}
               >
                 Add Subscription
@@ -205,6 +252,22 @@ export default function AddSubscriptionScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <DateTimePickerModal
+        isVisible={isRenewalDatePickerVisible}
+        mode="date"
+        onConfirm={handleRenewalDateConfirm}
+        onCancel={hideRenewalDatePicker}
+        minimumDate={new Date()}
+      />
+
+      <DateTimePickerModal
+        isVisible={isStartDatePickerVisible}
+        mode="date"
+        onConfirm={handleStartDateConfirm}
+        onCancel={hideStartDatePicker}
+        maximumDate={new Date()}
+      />
     </SafeAreaView>
   );
 }
