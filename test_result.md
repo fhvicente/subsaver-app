@@ -262,8 +262,46 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+  - task: "Native Date Pickers for Add/Edit Subscriptions"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/subscriptions/add.tsx, /app/frontend/app/subscriptions/edit.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Integrated react-native-modal-datetime-picker for smooth native date selection. Renewal date and start date now use native date pickers instead of text input. Improved UX with calendar icons and formatted date display (MMM dd, yyyy)."
+
+  - task: "Optional Authentication with Guest Mode"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/store/authStore.ts, /app/frontend/src/store/localSubscriptionStore.ts, /app/frontend/app/welcome.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Made authentication optional. Users can now continue as guest without signing in. Guest mode stores subscriptions locally using AsyncStorage. Welcome screen provides three options: Continue as Guest, Sign In, or Create Account. All features work in both authenticated and guest modes."
+
+  - task: "Local Storage for Guest Mode"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/store/localSubscriptionStore.ts, /app/frontend/app/(tabs)/dashboard.tsx, /app/frontend/app/(tabs)/subscriptions.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created local subscription store using Zustand + AsyncStorage. Dashboard and subscription list screens now support both cloud (authenticated) and local (guest) data. Automatic switching between local and API data based on auth state. Local analytics calculations match server-side logic."
+
 agent_communication:
   - agent: "main"
     message: "Core Subscription Manager app implemented. Backend has complete authentication with JWT, full subscription CRUD with analytics. Frontend has auth flow, bottom tab navigation, dashboard with metrics, subscription list with sorting, add/edit/delete forms, and profile with currency selector. All features ready for testing. Notifications are placeholders as requested by user."
+  - agent: "main"
+    message: "Updated with new features: 1) Native date pickers integrated for smoother UX when adding/editing subscriptions. 2) Optional authentication implemented - users can now use the app as guest without signing in. Guest mode stores all data locally on device. Welcome screen added with options to continue as guest, sign in, or create account. All features work in both authenticated and guest modes."
   - agent: "testing"
     message: "✅ BACKEND TESTING COMPLETE: All 4 high-priority backend tasks are working correctly. Authentication system (register/login/JWT) fully functional with proper error handling. User profile management working (get/update currency). Subscription CRUD operations complete - create, read, update, delete all working with proper calculations. Dashboard analytics endpoint returning accurate metrics. Minor issues: bcrypt version warning (non-critical), backend allows negative subscription prices (validation enhancement opportunity). All core functionality verified and working as expected."
