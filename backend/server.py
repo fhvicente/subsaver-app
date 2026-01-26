@@ -433,7 +433,7 @@ async def delete_subscription(subscription_id: str, current_user: dict = Depends
 
 @api_router.get("/subscriptions/analytics/dashboard", response_model=DashboardAnalytics)
 async def get_dashboard_analytics(current_user: dict = Depends(get_current_user)):
-    subscriptions = await db.subscriptions.find({"user_id": str(current_user["_id"])}).to_list(1000)
+    subscriptions = await db.subscriptions.find({" user_id": str(current_user["_id"])}).to_list(1000)
     
     total_subscriptions = len(subscriptions)
     monthly_spend = 0
@@ -444,14 +444,15 @@ async def get_dashboard_analytics(current_user: dict = Depends(get_current_user)
     
     for sub in subscriptions:
         metrics = calculate_subscription_metrics(sub)
-        monthly_spend += metrics['monthly_cost']
-        annual_spend += metrics['annual_cost']
+        # Use user's share for calculations
+        monthly_spend += metrics['user_share']
+        annual_spend += metrics['user_share'] * 12
         
         # Category breakdown
         category = sub.get('category', 'Uncategorized')
         if category not in category_breakdown:
             category_breakdown[category] = 0
-        category_breakdown[category] += metrics['monthly_cost']
+        category_breakdown[category] += metrics['user_share']
         
         # Find next renewal
         if metrics['days_until_renewal'] >= 0 and metrics['days_until_renewal'] < min_days:
@@ -467,7 +468,10 @@ async def get_dashboard_analytics(current_user: dict = Depends(get_current_user)
                 monthly_cost=metrics["monthly_cost"],
                 annual_cost=metrics["annual_cost"],
                 days_until_renewal=metrics["days_until_renewal"],
-                created_at=sub["created_at"]
+                created_at=sub["created_at"],
+                shared_with=sub.get("shared_with"),
+                split_count=sub.get("split_count", 1),
+                user_share=metrics["user_share"]
             )
     
     return DashboardAnalytics(
@@ -477,6 +481,19 @@ async def get_dashboard_analytics(current_user: dict = Depends(get_current_user)
         next_renewal=next_renewal,
         category_breakdown=category_breakdown
     )
+
+# ==================== Template Routes ====================
+
+@api_router.get("/templates", response_model=List[SubscriptionTemplate])
+async def get_templates():
+    \"\"\"Get list of common subscription templates\"\"\"
+    return [SubscriptionTemplate(**template) for template in COMMON_TEMPLATES]
+
+@api_router.get("/categories")
+async def get_categories():
+    \"\"\"Get list of subscription categories\"\"\"
+    categories = list(set(template["category"] for template in COMMON_TEMPLATES))
+    return sorted(categories)
 
 app.include_router(api_router)
 
