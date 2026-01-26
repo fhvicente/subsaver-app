@@ -491,12 +491,12 @@ async def get_dashboard_analytics(current_user: dict = Depends(get_current_user)
 
 @api_router.get("/templates", response_model=List[SubscriptionTemplate])
 async def get_templates():
-    \"\"\"Get list of common subscription templates\"\"\"
+    """Get list of common subscription templates"""
     return [SubscriptionTemplate(**template) for template in COMMON_TEMPLATES]
 
 @api_router.get("/categories")
 async def get_categories():
-    \"\"\"Get list of subscription categories\"\"\"
+    """Get list of subscription categories"""
     categories = list(set(template["category"] for template in COMMON_TEMPLATES))
     return sorted(categories)
 
