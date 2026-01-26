@@ -90,6 +90,9 @@ class SubscriptionResponse(BaseModel):
     annual_cost: float
     days_until_renewal: int
     created_at: datetime
+    shared_with: Optional[List[str]] = None
+    split_count: int = 1
+    user_share: float  # User's portion of the cost
 
 class DashboardAnalytics(BaseModel):
     total_subscriptions: int
