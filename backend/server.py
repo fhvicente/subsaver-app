@@ -307,6 +307,8 @@ async def create_subscription(sub_data: SubscriptionCreate, current_user: dict =
         "start_date": sub_data.start_date,
         "category": sub_data.category,
         "notes": sub_data.notes,
+        "shared_with": sub_data.shared_with or [],
+        "split_count": sub_data.split_count or 1,
         "created_at": datetime.utcnow()
     }
     
@@ -326,7 +328,10 @@ async def create_subscription(sub_data: SubscriptionCreate, current_user: dict =
         monthly_cost=metrics["monthly_cost"],
         annual_cost=metrics["annual_cost"],
         days_until_renewal=metrics["days_until_renewal"],
-        created_at=subscription["created_at"]
+        created_at=subscription["created_at"],
+        shared_with=subscription["shared_with"],
+        split_count=subscription["split_count"],
+        user_share=metrics["user_share"]
     )
 
 @api_router.get("/subscriptions", response_model=List[SubscriptionResponse])
