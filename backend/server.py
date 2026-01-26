@@ -65,6 +65,8 @@ class SubscriptionCreate(BaseModel):
     start_date: Optional[str] = None
     category: Optional[str] = None
     notes: Optional[str] = None
+    shared_with: Optional[List[str]] = None  # List of names/emails sharing
+    split_count: Optional[int] = 1  # Total number of people splitting cost
 
 class SubscriptionUpdate(BaseModel):
     service_name: Optional[str] = None
