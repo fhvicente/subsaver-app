@@ -75,6 +75,8 @@ class SubscriptionUpdate(BaseModel):
     start_date: Optional[str] = None
     category: Optional[str] = None
     notes: Optional[str] = None
+    shared_with: Optional[List[str]] = None
+    split_count: Optional[int] = None
 
 class SubscriptionResponse(BaseModel):
     id: str
