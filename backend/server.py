@@ -101,6 +101,41 @@ class DashboardAnalytics(BaseModel):
     next_renewal: Optional[SubscriptionResponse] = None
     category_breakdown: dict
 
+class SubscriptionTemplate(BaseModel):
+    name: str
+    category: str
+    suggested_price: Optional[float] = None
+    description: Optional[str] = None
+
+# Common subscription templates
+COMMON_TEMPLATES = [
+    {"name": "Netflix", "category": "Streaming", "suggested_price": 15.99, "description": "Video streaming service"},
+    {"name": "Spotify", "category": "Music", "suggested_price": 9.99, "description": "Music streaming service"},
+    {"name": "YouTube Premium", "category": "Streaming", "suggested_price": 11.99, "description": "Ad-free YouTube"},
+    {"name": "Amazon Prime", "category": "Shopping & Streaming", "suggested_price": 14.99, "description": "Shopping benefits and Prime Video"},
+    {"name": "Disney+", "category": "Streaming", "suggested_price": 7.99, "description": "Disney content streaming"},
+    {"name": "Apple Music", "category": "Music", "suggested_price": 10.99, "description": "Apple music streaming"},
+    {"name": "Hulu", "category": "Streaming", "suggested_price": 7.99, "description": "TV shows and movies"},
+    {"name": "HBO Max", "category": "Streaming", "suggested_price": 15.99, "description": "HBO content and more"},
+    {"name": "Adobe Creative Cloud", "category": "Productivity", "suggested_price": 54.99, "description": "Creative software suite"},
+    {"name": "Microsoft 365", "category": "Productivity", "suggested_price": 6.99, "description": "Office productivity suite"},
+    {"name": "Dropbox", "category": "Cloud Storage", "suggested_price": 11.99, "description": "Cloud file storage"},
+    {"name": "iCloud", "category": "Cloud Storage", "suggested_price": 2.99, "description": "Apple cloud storage"},
+    {"name": "Google One", "category": "Cloud Storage", "suggested_price": 1.99, "description": "Google cloud storage"},
+    {"name": "GitHub Pro", "category": "Development", "suggested_price": 4.00, "description": "Code hosting platform"},
+    {"name": "LinkedIn Premium", "category": "Professional", "suggested_price": 29.99, "description": "Professional networking"},
+    {"name": "Notion", "category": "Productivity", "suggested_price": 8.00, "description": "Note-taking and productivity"},
+    {"name": "Evernote", "category": "Productivity", "suggested_price": 7.99, "description": "Note-taking app"},
+    {"name": "Audible", "category": "Entertainment", "suggested_price": 14.95, "description": "Audiobook service"},
+    {"name": "Kindle Unlimited", "category": "Entertainment", "suggested_price": 9.99, "description": "E-book subscription"},
+    {"name": "PlayStation Plus", "category": "Gaming", "suggested_price": 9.99, "description": "PlayStation online service"},
+    {"name": "Xbox Game Pass", "category": "Gaming", "suggested_price": 9.99, "description": "Xbox gaming subscription"},
+    {"name": "Nintendo Switch Online", "category": "Gaming", "suggested_price": 3.99, "description": "Nintendo online service"},
+    {"name": "ChatGPT Plus", "category": "AI & Tools", "suggested_price": 20.00, "description": "Advanced AI assistant"},
+    {"name": "Grammarly", "category": "Productivity", "suggested_price": 12.00, "description": "Writing assistant"},
+    {"name": "Canva Pro", "category": "Design", "suggested_price": 12.99, "description": "Graphic design platform"},
+]
+
 # ==================== Helper Functions ====================
 
 def verify_password(plain_password, hashed_password):
