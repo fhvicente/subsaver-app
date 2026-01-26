@@ -352,7 +352,10 @@ async def get_subscriptions(current_user: dict = Depends(get_current_user)):
             monthly_cost=metrics["monthly_cost"],
             annual_cost=metrics["annual_cost"],
             days_until_renewal=metrics["days_until_renewal"],
-            created_at=sub["created_at"]
+            created_at=sub["created_at"],
+            shared_with=sub.get("shared_with", []),
+            split_count=sub.get("split_count", 1),
+            user_share=metrics["user_share"]
         ))
     
     return result
@@ -383,7 +386,10 @@ async def get_subscription(subscription_id: str, current_user: dict = Depends(ge
         monthly_cost=metrics["monthly_cost"],
         annual_cost=metrics["annual_cost"],
         days_until_renewal=metrics["days_until_renewal"],
-        created_at=subscription["created_at"]
+        created_at=subscription["created_at"],
+        shared_with=subscription.get("shared_with", []),
+        split_count=subscription.get("split_count", 1),
+        user_share=metrics["user_share"]
     )
 
 @api_router.put("/subscriptions/{subscription_id}", response_model=SubscriptionResponse)
