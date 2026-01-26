@@ -148,10 +148,15 @@ def calculate_subscription_metrics(subscription: dict) -> dict:
     monthly_cost = subscription['price']
     annual_cost = monthly_cost * 12
     
+    # Calculate user's share if subscription is split
+    split_count = subscription.get('split_count', 1)
+    user_share = monthly_cost / split_count if split_count > 0 else monthly_cost
+    
     return {
         'monthly_cost': round(monthly_cost, 2),
         'annual_cost': round(annual_cost, 2),
-        'days_until_renewal': days_until
+        'days_until_renewal': days_until,
+        'user_share': round(user_share, 2)
     }
 
 # ==================== Auth Routes ====================
