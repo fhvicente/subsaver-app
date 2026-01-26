@@ -424,7 +424,10 @@ async def update_subscription(subscription_id: str, update_data: SubscriptionUpd
         monthly_cost=metrics["monthly_cost"],
         annual_cost=metrics["annual_cost"],
         days_until_renewal=metrics["days_until_renewal"],
-        created_at=subscription["created_at"]
+        created_at=subscription["created_at"],
+        shared_with=subscription.get("shared_with", []),
+        split_count=subscription.get("split_count", 1),
+        user_share=metrics["user_share"]
     )
 
 @api_router.delete("/subscriptions/{subscription_id}")
