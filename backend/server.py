@@ -447,7 +447,7 @@ async def delete_subscription(subscription_id: str, current_user: dict = Depends
 
 @api_router.get("/subscriptions/analytics/dashboard", response_model=DashboardAnalytics)
 async def get_dashboard_analytics(current_user: dict = Depends(get_current_user)):
-    subscriptions = await db.subscriptions.find({" user_id": str(current_user["_id"])}).to_list(1000)
+    subscriptions = await db.subscriptions.find({"user_id": str(current_user["_id"])}).to_list(1000)
     
     total_subscriptions = len(subscriptions)
     monthly_spend = 0
