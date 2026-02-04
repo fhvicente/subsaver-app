@@ -234,10 +234,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 100, // Increased for FAB space
+    minHeight: '100%', // Ensure full height on all devices
   },
   header: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   title: {
     fontWeight: 'bold',
@@ -248,11 +249,13 @@ const styles = StyleSheet.create({
   },
   metricsContainer: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
     marginBottom: 16,
+    flexWrap: 'wrap', // Allow wrapping on smaller screens
   },
   metricCard: {
     flex: 1,
+    minWidth: '45%', // Responsive minimum width
   },
   metricIconRow: {
     marginBottom: 8,
@@ -261,9 +264,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#6200ee',
     marginBottom: 4,
+    fontSize: 20, // Responsive font size
   },
   metricLabel: {
     color: '#666',
+    fontSize: 12,
   },
   summaryCard: {
     marginBottom: 16,
@@ -276,6 +281,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   summaryValue: {
     fontWeight: 'bold',
@@ -289,9 +295,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   renewalInfo: {
     flex: 1,
+    minWidth: 150, // Prevent text from being too squished
   },
   serviceName: {
     fontWeight: 'bold',
@@ -318,17 +326,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
+    flexWrap: 'wrap',
   },
   categoryAmount: {
     fontWeight: 'bold',
     color: '#6200ee',
   },
   emptyCard: {
-    marginTop: 32,
+    marginTop: 20,
+    minHeight: 200, // Ensure visible on all screens
   },
   emptyContent: {
     alignItems: 'center',
     paddingVertical: 32,
+    paddingHorizontal: 16,
   },
   emptyTitle: {
     fontWeight: 'bold',
@@ -338,11 +349,12 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#666',
     textAlign: 'center',
+    paddingHorizontal: 16,
   },
   fab: {
     position: 'absolute',
     right: 16,
-    bottom: 16,
+    bottom: 80, // Higher position to avoid tab bar
     backgroundColor: '#6200ee',
   },
 });
