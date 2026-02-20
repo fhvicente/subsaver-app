@@ -1,13 +1,14 @@
 // metro.config.js
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
-const path = require("path");
+const path = require("node:path");
 const { FileStore } = require("metro-cache");
 
 const config = getDefaultConfig(__dirname);
 
 // Use a stable on-disk store (shared across web/android)
-const root = process.env.METRO_CACHE_ROOT || path.join(__dirname, ".metro-cache");
+const root =
+	process.env.METRO_CACHE_ROOT || path.join(__dirname, ".metro-cache");
 config.cacheStores = [new FileStore({ root: path.join(root, "cache") })];
 
 // // Exclude unnecessary directories from file watching

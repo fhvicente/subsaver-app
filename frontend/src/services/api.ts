@@ -1,5 +1,4 @@
 import axios from "axios";
-import Constants from "expo-constants";
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || "http://localhost:8001";
 
@@ -13,9 +12,9 @@ const api = axios.create({
 // Add auth token to requests
 export const setAuthToken = (token: string | null) => {
 	if (token) {
-		api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+		api.defaults.headers.common.Authorization = `Bearer ${token}`;
 	} else {
-		delete api.defaults.headers.common["Authorization"];
+		delete api.defaults.headers.common.Authorization;
 	}
 };
 
