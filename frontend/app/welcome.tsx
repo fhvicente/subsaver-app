@@ -1,141 +1,93 @@
-import React from 'react';
-import { View, StyleSheet, Image } from 'react-native';
-import { Text, Button } from 'react-native-paper';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuthStore } from '../src/store/authStore';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React from "react";
+import { View } from "react-native";
+import { Button, Text } from "react-native-paper";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "../src/constants/colors";
+import { useAuthStore } from "../src/store/authStore";
 
 export default function WelcomeScreen() {
-  const router = useRouter();
-  const continueAsGuest = useAuthStore((state) => state.continueAsGuest);
+    const router = useRouter();
+    const continueAsGuest = useAuthStore((state) => state.continueAsGuest);
 
-  const handleContinueAsGuest = async () => {
-    await continueAsGuest();
-    router.replace('/(tabs)/dashboard');
-  };
+    const handleContinueAsGuest = async () => {
+        await continueAsGuest();
+        router.replace("/(tabs)/dashboard");
+    };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.content}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="wallet" size={80} color="#6200ee" />
-        </View>
-        
-        <Text variant="headlineLarge" style={styles.title}>
-          Subscription Manager
-        </Text>
-        <Text variant="bodyLarge" style={styles.subtitle}>
-          Track and manage all your recurring subscriptions in one place
-        </Text>
+    return (
+        <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+            <View className="flex-1 justify-center p-6">
+                <View className="mb-6 items-center">
+                    <Ionicons name="wallet" size={80} color={colors.primary} />
+                </View>
 
-        <View style={styles.features}>
-          <View style={styles.featureRow}>
-            <Ionicons name="checkmark-circle" size={24} color="#6200ee" />
-            <Text variant="bodyMedium" style={styles.featureText}>
-              Track monthly & annual spending
-            </Text>
-          </View>
-          <View style={styles.featureRow}>
-            <Ionicons name="checkmark-circle" size={24} color="#6200ee" />
-            <Text variant="bodyMedium" style={styles.featureText}>
-              Never miss a renewal date
-            </Text>
-          </View>
-          <View style={styles.featureRow}>
-            <Ionicons name="checkmark-circle" size={24} color="#6200ee" />
-            <Text variant="bodyMedium" style={styles.featureText}>
-              Organize by categories
-            </Text>
-          </View>
-        </View>
+                <Text variant="headlineLarge" style={{ fontWeight: "bold", textAlign: "center", marginBottom: 12 }}>
+                    Subscription Manager
+                </Text>
+                <Text
+                    variant="bodyLarge"
+                    style={{
+                        textAlign: "center",
+                        color: colors.textSecondary,
+                        marginBottom: 40,
+                    }}
+                >
+                    Track and manage all your recurring subscriptions in one place
+                </Text>
 
-        <View style={styles.buttonContainer}>
-          <Button
-            mode="contained"
-            onPress={handleContinueAsGuest}
-            style={styles.guestButton}
-            icon="arrow-right"
-          >
-            Continue as Guest
-          </Button>
+                <View className="mb-10">
+                    <View className="mb-4 flex-row items-center">
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                        <Text variant="bodyMedium" style={{ marginLeft: 12, flex: 1 }}>
+                            Track monthly & annual spending
+                        </Text>
+                    </View>
+                    <View className="mb-4 flex-row items-center">
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                        <Text variant="bodyMedium" style={{ marginLeft: 12, flex: 1 }}>
+                            Never miss a renewal date
+                        </Text>
+                    </View>
+                    <View className="mb-4 flex-row items-center">
+                        <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
+                        <Text variant="bodyMedium" style={{ marginLeft: 12, flex: 1 }}>
+                            Organize by categories
+                        </Text>
+                    </View>
+                </View>
 
-          <Button
-            mode="outlined"
-            onPress={() => router.push('/auth/login')}
-            style={styles.loginButton}
-          >
-            Sign In
-          </Button>
+                <View className="gap-3">
+                    <Button
+                        mode="contained"
+                        onPress={handleContinueAsGuest}
+                        style={{ paddingVertical: 4 }}
+                        icon="arrow-right"
+                    >
+                        Continue as Guest
+                    </Button>
 
-          <Button
-            mode="text"
-            onPress={() => router.push('/auth/register')}
-            style={styles.registerButton}
-          >
-            Create Account
-          </Button>
-        </View>
+                    <Button mode="outlined" onPress={() => router.push("/auth/login")} style={{ paddingVertical: 4 }}>
+                        Sign In
+                    </Button>
 
-        <Text variant="bodySmall" style={styles.guestNote}>
-          Guest mode stores data locally on your device
-        </Text>
-      </View>
-    </SafeAreaView>
-  );
+                    <Button mode="text" onPress={() => router.push("/auth/register")} style={{ paddingVertical: 4 }}>
+                        Create Account
+                    </Button>
+                </View>
+
+                <Text
+                    variant="bodySmall"
+                    style={{
+                        textAlign: "center",
+                        color: colors.textMuted,
+                        marginTop: 16,
+                    }}
+                >
+                    Guest mode stores data locally on your device
+                </Text>
+            </View>
+        </SafeAreaView>
+    );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  subtitle: {
-    textAlign: 'center',
-    color: '#666',
-    marginBottom: 40,
-  },
-  features: {
-    marginBottom: 40,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  featureText: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  buttonContainer: {
-    gap: 12,
-  },
-  guestButton: {
-    paddingVertical: 4,
-  },
-  loginButton: {
-    paddingVertical: 4,
-  },
-  registerButton: {
-    paddingVertical: 4,
-  },
-  guestNote: {
-    textAlign: 'center',
-    color: '#999',
-    marginTop: 16,
-  },
-});
